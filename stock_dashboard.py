@@ -5,6 +5,7 @@ import ta
 from datetime import datetime, timedelta
 from vnstock import Vnstock
 import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 
 st.set_page_config(layout="wide")
 
@@ -36,28 +37,41 @@ def add_technical_indicators(df):
     return df
 
 def plot_chart(df, symbol):
-    addplots = [
-        mpf.make_addplot(df['MA5'], color='blue'),
-        mpf.make_addplot(df['MA10'], color='orange'),
-        mpf.make_addplot(df['MA50'], color='magenta'),
-        mpf.make_addplot(df['BB_Upper'], color='grey', linestyle='dashed'),
-        mpf.make_addplot(df['BB_Middle'], color='black', linestyle='dotted'),
-        mpf.make_addplot(df['BB_Lower'], color='grey', linestyle='dashed'),
-        mpf.make_addplot(df['RSI'], panel=1, color='purple', ylabel='RSI')
-    ]
+    fig = go.Figure()
 
-    fig, _ = mpf.plot(
-        df,
-        type='candle',
-        style='charles',
-        title=f"Biểu đồ kỹ thuật: {symbol}",
-        volume=True,
-        addplot=addplots,
-        figratio=(16, 9),
-        figscale=1.2,
-        panel_ratios=(6, 2),
-        returnfig=True
+    # Vẽ biểu đồ nến
+    fig.add_trace(go.Candlestick(
+        x=df.index,
+        open=df['open'],
+        high=df['high'],
+        low=df['low'],
+        close=df['close'],
+        name='Candlestick',
+        hovertext=[
+            f"Ngày: {x.strftime('%d-%m-%Y')}<br>Open: {o}<br>High: {h}<br>Low: {l}<br>Close: {c}"
+            for x, o, h, l, c in zip(df.index, df['open'], df['high'], df['low'], df['close'])
+        ],
+        hoverinfo='text'  # Sử dụng text được định nghĩa ở hovertext
+    ))
+    # Vẽ các đường MA
+    fig.add_trace(go.Scatter(x=df.index, y=df['MA5'], mode='lines', name='MA5', line=dict(color='blue')))
+    fig.add_trace(go.Scatter(x=df.index, y=df['MA10'], mode='lines', name='MA10', line=dict(color='orange')))
+    fig.add_trace(go.Scatter(x=df.index, y=df['MA50'], mode='lines', name='MA50', line=dict(color='magenta')))
+    fig.add_trace(go.Scatter(x=df.index, y=df['BB_Upper'], mode='lines', name='BB Upper', line=dict(color='grey', dash='dash')))
+    fig.add_trace(go.Scatter(x=df.index, y=df['BB_Middle'], mode='lines', name='BB Middle', line=dict(color='black', dash='dot')))
+    fig.add_trace(go.Scatter(x=df.index, y=df['BB_Lower'], mode='lines', name='BB Lower', line=dict(color='grey', dash='dash')))
+
+    # Cấu hình giao diện
+    fig.update_layout(
+        title=f'Biểu đồ kỹ thuật: {symbol}',
+        xaxis_title='Ngày',
+        yaxis_title='Giá',
+        xaxis_rangeslider_visible=False,
+        template='plotly_white',
+        autosize=True,
+        height=700
     )
+
     return fig
 
 def get_company_profile(symbol):
@@ -85,7 +99,7 @@ if symbols:
         if df is not None:
             df = add_technical_indicators(df)
             fig = plot_chart(df, symbol)
-            st.pyplot(fig)
+            st.plotly_chart(fig, use_container_width=True)
 
             # --- Thông tin doanh nghiệp ---
             st.markdown("### 🏢 Thông tin doanh nghiệp")
